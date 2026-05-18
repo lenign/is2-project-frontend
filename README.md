@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IS2 Project — Frontend
 
-## Getting Started
+Aplicación web construida con [Next.js](https://nextjs.org), inicializada con [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-First, run the development server:
+---
+
+## Requisitos previos
+
+- Node.js 18+
+- npm, yarn, pnpm o bun
+- Docker y Docker Compose (para despliegue en contenedor)
+
+---
+
+## Desarrollo local
+
+Instala las dependencias e inicia el servidor de desarrollo:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+El punto de entrada principal es `src/app/page.tsx`. Los cambios se reflejan automáticamente sin reiniciar el servidor.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Scripts disponibles
 
-To learn more about Next.js, take a look at the following resources:
+| Comando | Descripción |
+|---|---|
+| `npm run dev` | Inicia el servidor de desarrollo |
+| `npm run build` | Genera el build de producción |
+| `npm run start` | Inicia el servidor en modo producción |
+| `npm run lint` | Ejecuta el linter |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Correr imagen Docker
 
-## Deploy on Vercel
+El proyecto está configurado con `output: 'standalone'` para generar un build optimizado para contenedores.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+> **Importante:** el repositorio incluye un `docker-compose.override.yml` para desarrollo local con hot reload. Docker Compose lo aplica automáticamente, lo que causa un crash de Turbopack en modo producción. Para levantar en producción siempre usa el flag `-f` para usar solo el archivo base:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# Build y levantar todos los servicios (producción)
+docker compose -f docker-compose.yml up --build
+
+# Solo el frontend
+docker compose -f docker-compose.yml up --build frontend
+
+# En segundo plano
+docker compose -f docker-compose.yml up -d --build
+
+# Ver logs del frontend
+docker compose logs -f frontend
+
+# Detener todos los servicios
+docker compose down
+```
+
+## Recursos
+
+- [Documentación de Next.js](https://nextjs.org/docs)
+- [Tutorial interactivo de Next.js](https://nextjs.org/learn)
+- [Repositorio de Next.js en GitHub](https://github.com/vercel/next.js)
