@@ -1,41 +1,76 @@
 'use client'
 
-import { useState } from 'react'
-import Toggle from '@/components/Toggle'
+import { useState, useEffect, useCallback } from 'react'
 import Modal from '@/components/Modal'
+import { api, PermisoDto, RolDto } from '@/lib/api'
 
-const MODULE_STYLES: Record<string, { bg: string; color: string }> = {
-  Pacientes:        { bg: '#e8f5ee', color: '#1b6e47' },
-  Citas:            { bg: '#fff3e0', color: '#e07b00' },
-  'Historial Médico': { bg: '#e8f0fe', color: '#3b5bdb' },
-  Reportes:         { bg: '#fce8e8', color: '#c62828' },
-  Configuración:    { bg: '#f3f0fe', color: '#6741d9' },
-  Usuarios:         { bg: '#e8f5ee', color: '#2e7d32' },
-}
-
-const PERMISOS = [
-  { name: 'Ver Pacientes',      code: 'PAC_VIEW',    module: 'Pacientes',        active: true },
-  { name: 'Editar Pacientes',   code: 'PAC_EDIT',    module: 'Pacientes',        active: true },
-  { name: 'Eliminar Pacientes', code: 'PAC_DELETE',  module: 'Pacientes',        active: false },
-  { name: 'Crear Citas',        code: 'CIT_CREATE',  module: 'Citas',            active: true },
-  { name: 'Ver Historial',      code: 'HIST_VIEW',   module: 'Historial Médico', active: true },
-  { name: 'Generar Reportes',   code: 'REP_GEN',     module: 'Reportes',         active: true },
-  { name: 'Configurar Sistema', code: 'SYS_CONFIG',  module: 'Configuración',    active: false },
-  { name: 'Gestionar Usuarios', code: 'USR_MANAGE',  module: 'Usuarios',         active: true },
-]
-
-const MODULES = ['Todos los módulos', 'Pacientes', 'Citas', 'Historial Médico', 'Reportes', 'Configuración', 'Usuarios']
+type PermisoForm = { descripcion: string; rol_Id: number }
 
 export default function PermisosPage() {
-  const [modalOpen, setModalOpen] = useState(false)
+  const [permisos, setPermisos] = useState<PermisoDto[]>([])
+  const [roles, setRoles] = useState<RolDto[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [moduleFilter, setModuleFilter] = useState('Todos los módulos')
+  const [rolFilter, setRolFilter] = useState(0)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editPermiso, setEditPermiso] = useState<PermisoDto | null>(null)
+  const [form, setForm] = useState<PermisoForm>({ descripcion: '', rol_Id: 0 })
+  const [saving, setSaving] = useState(false)
 
-  const filtered = PERMISOS.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase())
-    const matchModule = moduleFilter === 'Todos los módulos' || p.module === moduleFilter
-    return matchSearch && matchModule
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [p, r] = await Promise.all([api.permisos.list(), api.roles.list()])
+      setPermisos(p)
+      setRoles(r)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadData() }, [loadData])
+
+  const rolMap = Object.fromEntries(roles.map(r => [r.id_Rol, r.descripcion]))
+
+  const filtered = permisos.filter(p => {
+    const matchSearch = p.descripcion.toLowerCase().includes(search.toLowerCase())
+    const matchRol = rolFilter === 0 || p.rol_Id === rolFilter
+    return matchSearch && matchRol
   })
+
+  async function handleCreate() {
+    if (!form.descripcion.trim() || !form.rol_Id) return
+    setSaving(true)
+    try {
+      await api.permisos.create(form.descripcion.trim(), form.rol_Id)
+      setCreateOpen(false)
+      setForm({ descripcion: '', rol_Id: 0 })
+      await loadData()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleEdit() {
+    if (!editPermiso || !form.descripcion.trim() || !form.rol_Id) return
+    setSaving(true)
+    try {
+      await api.permisos.update(editPermiso.id_Permiso, {
+        descripcion: form.descripcion.trim(),
+        rol_Id: form.rol_Id,
+      })
+      setEditPermiso(null)
+      await loadData()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm('¿Eliminar este permiso?')) return
+    await api.permisos.remove(id)
+    await loadData()
+  }
 
   return (
     <div className="p-7">
@@ -58,7 +93,7 @@ export default function PermisosPage() {
           </div>
         </div>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={() => { setForm({ descripcion: '', rol_Id: 0 }); setCreateOpen(true) }}
           className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg"
           style={{ background: 'var(--md-green-dark)', border: 'none', cursor: 'pointer' }}
         >
@@ -67,93 +102,96 @@ export default function PermisosPage() {
       </div>
 
       {/* Table card */}
-      <div
-        className="bg-white rounded-xl p-5"
-        style={{ border: '2px solid #1b8a60' }}
-      >
+      <div className="bg-white rounded-xl p-5" style={{ border: '2px solid #1b8a60' }}>
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="text-sm font-semibold" style={{ color: 'var(--md-text-primary)' }}>
               Permisos del Sistema
             </div>
             <div className="text-xs mt-0.5" style={{ color: 'var(--md-text-secondary)' }}>
-              {filtered.length} permisos encontrados
+              {filtered.length} permiso{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
             </div>
           </div>
         </div>
 
         {/* Filters */}
         <div className="flex items-center gap-2.5 mb-4">
-          <div className="relative flex-1 max-width-[320px]" style={{ maxWidth: 320 }}>
+          <div className="relative flex-1" style={{ maxWidth: 320 }}>
             <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm" />
             <input
               type="text"
-              placeholder="Buscar por nombre o código..."
+              placeholder="Buscar por nombre..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm rounded-lg outline-none"
               style={{ border: '1px solid var(--md-border)', fontFamily: 'inherit' }}
             />
           </div>
           <select
-            value={moduleFilter}
-            onChange={(e) => setModuleFilter(e.target.value)}
+            value={rolFilter}
+            onChange={e => setRolFilter(Number(e.target.value))}
             className="text-sm rounded-lg px-3 py-2 outline-none"
             style={{ border: '1px solid var(--md-border)', background: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
           >
-            {MODULES.map((m) => <option key={m}>{m}</option>)}
+            <option value={0}>Todos los roles</option>
+            {roles.map(r => <option key={r.id_Rol} value={r.id_Rol}>{r.descripcion}</option>)}
           </select>
         </div>
 
         {/* Table */}
-        <table className="w-full border-collapse">
-          <thead>
-            <tr style={{ borderBottom: '1px solid #eee' }}>
-              {['Permiso', 'Código', 'Módulo', 'Estado', 'Acciones'].map((h) => (
-                <th
-                  key={h}
-                  className="text-left text-xs font-semibold pb-2 px-3"
-                  style={{ color: 'var(--md-text-secondary)' }}
+        {loading ? (
+          <div className="text-sm py-4" style={{ color: 'var(--md-text-secondary)' }}>Cargando permisos...</div>
+        ) : (
+          <table className="w-full border-collapse">
+            <thead>
+              <tr style={{ borderBottom: '1px solid #eee' }}>
+                {['Permiso', 'ID', 'Rol', 'Acciones'].map(h => (
+                  <th
+                    key={h}
+                    className="text-left text-xs font-semibold pb-2 px-3"
+                    style={{ color: 'var(--md-text-secondary)' }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p, i) => (
+                <tr
+                  key={p.id_Permiso}
+                  style={{ borderBottom: i < filtered.length - 1 ? '0.5px solid #f0f0f0' : 'none' }}
                 >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((p, i) => {
-              const modStyle = MODULE_STYLES[p.module] || { bg: '#f2f2f2', color: '#555' }
-              return (
-                <tr key={p.code} style={{ borderBottom: i < filtered.length - 1 ? '0.5px solid #f0f0f0' : 'none' }}>
-                  <td className="text-sm px-3 py-2.5" style={{ color: 'var(--md-text-primary)' }}>{p.name}</td>
+                  <td className="text-sm px-3 py-2.5" style={{ color: 'var(--md-text-primary)' }}>
+                    {p.descripcion}
+                  </td>
                   <td className="px-3 py-2.5">
                     <span
                       className="text-xs px-2 py-0.5 rounded font-mono"
                       style={{ background: '#f0f0f0', color: '#555' }}
                     >
-                      {p.code}
+                      #{String(p.id_Permiso).padStart(3, '0')}
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
                     <span
                       className="text-xs px-2.5 py-0.5 rounded font-medium"
-                      style={{ background: modStyle.bg, color: modStyle.color }}
+                      style={{ background: '#e8f5ee', color: '#1b6e47' }}
                     >
-                      {p.module}
+                      {rolMap[p.rol_Id] ?? `Rol #${p.rol_Id}`}
                     </span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Toggle defaultOn={p.active} size="sm" />
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => { setEditPermiso(p); setForm({ descripcion: p.descripcion, rol_Id: p.rol_Id }) }}
                         className="text-gray-300 hover:text-gray-500 hover:bg-gray-100 p-1 rounded"
                         style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                       >
                         <i className="ti ti-pencil text-sm" />
                       </button>
                       <button
+                        onClick={() => handleDelete(p.id_Permiso)}
                         className="text-gray-300 hover:text-red-400 hover:bg-red-50 p-1 rounded"
                         style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                       >
@@ -162,82 +200,116 @@ export default function PermisosPage() {
                     </div>
                   </td>
                 </tr>
-              )
-            })}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* Modal */}
+      {/* Modal crear */}
       <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
         title="Crear Nuevo Permiso"
         subtitle="Ingresa los datos del nuevo permiso"
       >
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--md-text-secondary)' }}>
-              Nombre del Permiso
-            </label>
-            <input
-              type="text"
-              placeholder="Ej: Ver Pacientes"
-              className="w-full px-3 py-2 text-sm rounded-lg outline-none"
-              style={{ border: '1.5px solid var(--md-green-dark)', fontFamily: 'inherit' }}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--md-text-secondary)' }}>
-              Código
-            </label>
-            <input
-              type="text"
-              placeholder="Ej: PAC_VIEW"
-              className="w-full px-3 py-2 text-sm rounded-lg outline-none"
-              style={{ border: '1px solid var(--md-border)', fontFamily: 'inherit' }}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--md-text-secondary)' }}>
-              Módulo
-            </label>
-            <select
-              className="w-full px-3 py-2 text-sm rounded-lg outline-none"
-              style={{ border: '1px solid var(--md-border)', background: '#fff', fontFamily: 'inherit' }}
-            >
-              <option value="">Seleccionar módulo...</option>
-              {MODULES.slice(1).map((m) => <option key={m}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--md-text-secondary)' }}>
-              Descripción
-            </label>
-            <textarea
-              placeholder="Describe qué permite este permiso"
-              rows={3}
-              className="w-full px-3 py-2 text-sm rounded-lg outline-none resize-none"
-              style={{ border: '1px solid var(--md-border)', fontFamily: 'inherit' }}
-            />
-          </div>
-          <div className="flex gap-2.5 pt-1">
-            <button
-              onClick={() => setModalOpen(false)}
-              className="flex-1 py-2 text-sm rounded-lg transition-colors hover:bg-gray-50"
-              style={{ border: '1px solid var(--md-border)', background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              Cancelar
-            </button>
-            <button
-              className="flex-1 py-2 text-sm font-medium text-white rounded-lg"
-              style={{ background: 'var(--md-green-dark)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              Crear Permiso
-            </button>
-          </div>
-        </div>
+        <PermisoFormFields
+          form={form}
+          roles={roles}
+          saving={saving}
+          submitLabel="Crear Permiso"
+          onChange={setForm}
+          onSubmit={handleCreate}
+          onCancel={() => setCreateOpen(false)}
+        />
       </Modal>
+
+      {/* Modal editar */}
+      <Modal
+        open={!!editPermiso}
+        onClose={() => setEditPermiso(null)}
+        title="Editar Permiso"
+        subtitle="Modifica los datos del permiso"
+      >
+        <PermisoFormFields
+          form={form}
+          roles={roles}
+          saving={saving}
+          submitLabel="Guardar cambios"
+          onChange={setForm}
+          onSubmit={handleEdit}
+          onCancel={() => setEditPermiso(null)}
+        />
+      </Modal>
+    </div>
+  )
+}
+
+function PermisoFormFields({
+  form,
+  roles,
+  saving,
+  submitLabel,
+  onChange,
+  onSubmit,
+  onCancel,
+}: {
+  form: PermisoForm
+  roles: RolDto[]
+  saving: boolean
+  submitLabel: string
+  onChange: (f: PermisoForm) => void
+  onSubmit: () => void
+  onCancel: () => void
+}) {
+  const base = { border: '1px solid var(--md-border)', fontFamily: 'inherit' }
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--md-text-secondary)' }}>
+          Descripción del Permiso
+        </label>
+        <input
+          type="text"
+          placeholder="Ej: Ver Pacientes"
+          value={form.descripcion}
+          onChange={e => onChange({ ...form, descripcion: e.target.value })}
+          onKeyDown={e => e.key === 'Enter' && onSubmit()}
+          className="w-full px-3 py-2 text-sm rounded-lg outline-none"
+          style={{ ...base, border: '1.5px solid var(--md-green-dark)' }}
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--md-text-secondary)' }}>
+          Rol
+        </label>
+        <select
+          value={form.rol_Id}
+          onChange={e => onChange({ ...form, rol_Id: Number(e.target.value) })}
+          className="w-full px-3 py-2 text-sm rounded-lg outline-none"
+          style={{ ...base, background: '#fff', cursor: 'pointer' }}
+        >
+          <option value={0}>Seleccionar rol...</option>
+          {roles.map(r => <option key={r.id_Rol} value={r.id_Rol}>{r.descripcion}</option>)}
+        </select>
+      </div>
+      <div className="flex gap-2.5 pt-1">
+        <button
+          onClick={onCancel}
+          className="flex-1 py-2 text-sm rounded-lg hover:bg-gray-50"
+          style={{ border: '1px solid var(--md-border)', background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={onSubmit}
+          disabled={saving}
+          className="flex-1 py-2 text-sm font-medium text-white rounded-lg"
+          style={{ background: 'var(--md-green-dark)', border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}
+        >
+          {saving ? 'Guardando...' : submitLabel}
+        </button>
+      </div>
     </div>
   )
 }

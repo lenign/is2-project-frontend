@@ -11,6 +11,9 @@ interface RoleCardProps {
   accentColor: string
   dotColor: string
   defaultActive?: boolean
+  onToggle?: (value: boolean) => void
+  onEdit?: () => void
+  onDelete?: () => void
 }
 
 export default function RoleCard({
@@ -22,6 +25,9 @@ export default function RoleCard({
   accentColor,
   dotColor,
   defaultActive = true,
+  onToggle,
+  onEdit,
+  onDelete,
 }: RoleCardProps) {
   return (
     <div
@@ -31,10 +37,10 @@ export default function RoleCard({
       {/* Header */}
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--md-text-primary)' }}>
-          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: dotColor }} />
+          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: dotColor }} />
           {name}
         </div>
-        <Toggle defaultOn={defaultActive} size="sm" />
+        <Toggle defaultOn={defaultActive} size="sm" onChange={onToggle} />
       </div>
 
       <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--md-text-secondary)' }}>
@@ -70,6 +76,7 @@ export default function RoleCard({
         style={{ borderTop: '0.5px solid var(--md-border)' }}
       >
         <button
+          onClick={onEdit}
           className="flex-1 flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg transition-colors hover:bg-gray-50"
           style={{
             background: '#fff',
@@ -81,6 +88,7 @@ export default function RoleCard({
           <i className="ti ti-pencil text-sm" /> Editar
         </button>
         <button
+          onClick={onDelete}
           className="px-2.5 py-1.5 rounded-lg text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
           style={{ background: '#fff', border: '1px solid var(--md-border)', cursor: 'pointer' }}
         >

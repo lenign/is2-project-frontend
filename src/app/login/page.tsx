@@ -9,8 +9,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
+  const [error, setError] = useState('')
+
   const handleLogin = () => {
-    router.push('/dashboard/roles')
+    if (email === 'test@mydoctor.com' && password === '123Cambiar') {
+      router.push('/dashboard/roles')
+    } else {
+      setError('Correo o contraseña incorrectos.')
+    }
   }
 
   return (
@@ -137,6 +143,11 @@ export default function LoginPage() {
             <input type="checkbox" className="w-3.5 h-3.5 accent-green-700" />
             <span className="text-xs" style={{ color: 'var(--md-text-secondary)' }}>Recordar mis datos</span>
           </div>
+
+          {/* Error */}
+          {error && (
+            <p className="text-xs mb-3 text-center" style={{ color: '#e05' }}>{error}</p>
+          )}
 
           {/* Submit */}
           <button
