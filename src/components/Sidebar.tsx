@@ -8,7 +8,6 @@ const NAV_SECTIONS = [
     label: 'TIPO DE REGISTRO',
     items: [
       { id: 'medicos', href: '/dashboard/medicos', icon: 'ti-stethoscope', name: 'Médicos', desc: 'Registro de doctores y especialistas' },
-      { id: 'enfermeras', href: '/dashboard/enfermeras', icon: 'ti-heart', name: 'Enfermeras', desc: 'Registro de personal de enfermería' },
       { id: 'pacientes', href: '/dashboard/pacientes', icon: 'ti-user', name: 'Pacientes', desc: 'Registro de pacientes' },
       { id: 'empleados', href: '/dashboard/empleados', icon: 'ti-briefcase', name: 'Empleados', desc: 'Registro de personal administrativo' },
     ],

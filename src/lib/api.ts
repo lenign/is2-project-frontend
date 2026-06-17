@@ -212,6 +212,7 @@ export const api = {
     remove: (id: number) => req<void>(`/api/Cita/${id}`, { method: 'DELETE' }),
   },
   diagnosticos: {
+    list: () => req<DiagnosticoDto[]>('/api/Diagnostico'),
     byDni: (dni: string) => req<DiagnosticoDto[]>(`/api/Diagnostico/${dni}`),
     byId: (id: number) => req<DiagnosticoDto>(`/api/Diagnostico/id/${id}`),
     create: (data: { descripcion: string; comentario?: string; cita_Id: number }) =>
