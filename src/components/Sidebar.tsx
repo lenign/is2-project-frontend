@@ -14,6 +14,15 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: 'GESTIÓN MÉDICA',
+    items: [
+      { id: 'citas', href: '/dashboard/citas', icon: 'ti-calendar', name: 'Citas', desc: 'Programación de citas médicas' },
+      { id: 'diagnosticos', href: '/dashboard/diagnosticos', icon: 'ti-clipboard-text', name: 'Diagnósticos', desc: 'Diagnósticos por paciente' },
+      { id: 'medicamentos', href: '/dashboard/medicamentos', icon: 'ti-pill', name: 'Medicamentos', desc: 'Catálogo de medicamentos' },
+      { id: 'facturacion', href: '/dashboard/facturacion', icon: 'ti-receipt', name: 'Facturación', desc: 'Cobros por servicios médicos' },
+    ],
+  },
+  {
     label: 'ADMINISTRACIÓN',
     items: [
       { id: 'roles', href: '/dashboard/roles', icon: 'ti-shield-check', name: 'Roles', desc: 'Gestión de roles del sistema' },
